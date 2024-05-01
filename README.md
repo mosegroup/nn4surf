@@ -28,5 +28,5 @@ In the master folder there are the following scripts
 * _run_evo.py_ runs a simulation using a trained NN model (*NOTE*: at the moment, there is no argument parser: simulation parameters are currently directly modified in the script main function. A future release will add an argument parser also for this script)
 * _run_minimizer.py_ performs the minimization of a given initial profile using the NN model (*NOTE*: at the moment, there is no argument parser: simulation parameters are currently directly modified in the script main function. A future release will add an argument parser also for this script)
 
-For additional information, please, contact us.
+For additional information, please, contact us (d.lanzoni@campus.unimib.it or https://github.com/dlanzo/dlanzo).
 Happy learning!
