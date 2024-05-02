@@ -1,0 +1,14 @@
+__*
+data/*
+out/*
+in/*
+training_logs/*
+models/*
+datasets/*
+
+!data/.keep
+!out/.keep
+!in/.keep
+!training_logs/.keep
+!models/.keep
+!datasets/.keep
