@@ -3,7 +3,6 @@ import numpy as np
 import numpy.fft as fft
 import torch
 import torch.nn as nn
-from numba import njit
 # === import numerical stuff ===
 
 # <<< import utility stuff <<<
