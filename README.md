@@ -7,7 +7,6 @@ The code leverages the following python modules:
 * pytorch (version 2.2.2+cu121 tested)
 * matplotlib (version 3.5.1 tested)
 * scipy (version 1.12.0 tested)
-* numba (version 0.59.1 tested)
 
 pip installation should work "out of the box" (consider using a virtual environment)
 
