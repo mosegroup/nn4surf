@@ -110,6 +110,7 @@ class Minimizer:
         model = torch.jit.trace( model.forward, torch.randn(1,1,100).to(self.device) )
         
         self.model = model
+        self.model.double() # set model on float64 precision
         del model, model_for_params
         
         
@@ -128,7 +129,7 @@ class Minimizer:
         with torch.no_grad():
             if not isinstance(profile, torch.Tensor):
                 assert isinstance(profile, np.ndarray) # else, we will raise an error
-                profile = torch.from_numpy( profile ).float()
+                profile = torch.from_numpy( profile )
                 
             while profile.ndim < 3:
                 profile = profile.unsqueeze(0)
