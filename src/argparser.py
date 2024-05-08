@@ -95,14 +95,7 @@ class Parser():
             help        = 'Toggles debug mode (training and validation will break after few iterations)'
             )
 
-        self.parser.add_argument(
-            '--replicas',
-            type        = int,
-            default     = 0,
-            help        = 'Number of periodic replicas to be considered'
-            )
-
-
+        
 
 
     def parse_args(self):
