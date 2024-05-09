@@ -94,7 +94,20 @@ class Parser():
             action      = 'store_true',
             help        = 'Toggles debug mode (training and validation will break after few iterations)'
             )
+        
+        self.parser.add_argument(
+            '--replicas',
+            type        = int,
+            default     = 0,
+            help        = 'Number of periodic replicas to be considered'
+            )
 
+        self.parser.add_argument(
+            '--interpolation_mode',
+            type        = str,
+            default     = 'adaptive',
+            help        = 'Set interpolation mode for different scales. "adaptive" uses (transposed)convolutions while "simple" uses bilinear interpolation'
+            )
         
 
 
