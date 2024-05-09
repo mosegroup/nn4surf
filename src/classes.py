@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import torch.nn.functional as torchfunc
 import os
 import glob
 import random
@@ -210,3 +211,52 @@ def give_NN_model(path, device='cpu'):
     model = torch.jit.trace( model.forward, torch.randn(1,1,100).to(device) ) # traced objects are faster
     
     return model
+
+
+class sharedUNet(nn.Module):
+    # this class implement a special U Net architecture, in which weights are shared at different resolutions
+
+    def __init__(self, kernel_size, depth, channels, path, activation=nn.Tanh()):
+        # the constructor method
+
+        super().__init__()
+
+        self.kernel_size    = kernel_size
+        self.depth          = depth
+        self.channels       = channels
+        self.path           = path
+        self.activation     = activation
+
+        self.model1 = give_NN_model(path)
+        self.model2 = give_NN_model(path)
+        self.model3 = give_NN_model(path)
+
+        self.merger = nn.Conv1d(
+                in_channels     = 3,
+                out_channels    = 1,
+                kernel_size     = self.kernel_size,
+                stride          = 1,
+                padding         = (self.kernel_size-1)//2,
+                padding_mode    = 'circular'
+                )
+
+    def forward(self, x):
+        # first, we replicate the input at different resolutions
+        x1 = x
+        x2 = torchfunc.interpolate( x, size=x.shape[-1]//2 )
+        x3 = torchfunc.interpolate( x, size=x.shape[-1]//4 )
+
+        # predict mu at different resolutions
+        mu1 = self.model1(x1)
+        mu2 = 0.5*self.model2(x2)   # need 1/2 rescaling of prediction
+        mu3 = 0.25*self.model3(x3)  # nees 1/4 rescaling of prediction
+
+        # resize the predictions
+        mu2 = torchfunc.interpolate( mu2, size=x.shape[-1] )
+        mu3 = torchfunc.interpolate( mu3, size=x.shape[-1] )
+
+        # concatenate predictions
+        mus = torch.cat( (mu1,mu2,mu3), dim=1 )
+
+        return self.merger(mus) # perform "weighted average"
+

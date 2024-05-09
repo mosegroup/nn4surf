@@ -15,7 +15,7 @@ class TabulatedSeries(torch.utils.data.Dataset):
     This is a proper implementation of a dataset in pytorch
     '''
 
-    def __init__(self, table_path, mode='mu', every=20):
+    def __init__(self, table_path, mode='mu', replicas=0, every=20):
 
         super(TabulatedSeries, self).__init__()
         
@@ -23,6 +23,7 @@ class TabulatedSeries(torch.utils.data.Dataset):
         self.table_path     = table_path # <--- here there is a .txt file containing the path to all individual examples
         
         self.every = every
+        self.replicas = replicas
 
         with open(self.table_path,'r') as table_file:
             table  = table_file.readlines()
@@ -59,7 +60,13 @@ class TabulatedSeries(torch.utils.data.Dataset):
         data = self.readdata(line)
         
         profile, mu_eps, x = data[:-1:self.every,1], data[:-1:self.every,2], data[:-1:self.every,0]
-            
+        
+        if self.replicas > 1:
+            profile = np.tile(profile, self.replicas)
+            mu_eps  = np.tile(mu_eps, self.replicas)
+            dx = x[1]-x[0]
+            x = np.linspace(0,mu_eps.shape[-1]*dx,mu_eps.shape[-1])
+
         profile, mu_eps, x = self.numpyfy( [profile, mu_eps, x] )
         
         if torch.rand(1).item() <= 0.5:
@@ -71,7 +78,7 @@ class TabulatedSeries(torch.utils.data.Dataset):
 
         return profile, mu_eps, x
     
-    
+
     
 class TabulatedSeries_strain(torch.utils.data.Dataset):
     '''

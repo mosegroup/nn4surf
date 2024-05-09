@@ -95,6 +95,15 @@ class Parser():
             help        = 'Toggles debug mode (training and validation will break after few iterations)'
             )
 
+        self.parser.add_argument(
+            '--replicas',
+            type        = int,
+            default     = 0,
+            help        = 'Number of periodic replicas to be considered'
+            )
+
+        
+
 
     def parse_args(self):
         '''
@@ -104,7 +113,9 @@ class Parser():
         if not torch.cuda.is_available() and args.device.startswith('cuda'):
             print('Cuda is not available on the current machine... falling back on cpu')
             args.device = 'cpu'
-        if not args.no_graphics:
+        if args.no_graphics:
             args.graphics = False
+        else:
+            args.graphics = True
 
         return args
