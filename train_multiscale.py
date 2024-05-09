@@ -48,16 +48,27 @@ def main():
     # === NN architecture ===
 
     model = sharedUNet(
-        kernel_size     = kernel_size,
-        depth           = depth,
-        channels        = channels,
-        path            = args.model_path,
-        activation      = torch.nn.Tanh()
+        kernel_size         = kernel_size,
+        depth               = depth,
+        channels            = channels,
+        path                = args.model_path,
+        interpolation_mode  = args.interpolation_mode,
+        activation          = torch.nn.Tanh()
         )
     
     model.to(device)
     
-    optimizer = torch.optim.Adam(model.merger.parameters(), lr=args.lr)
+    if args.interpolation_mode == 'simple':
+        optimizer = torch.optim.Adam(model.merger.parameters(), lr=args.lr)
+    elif args.interpolation_mode == 'adaptive':
+        optimizer = torch.optim.Adam(
+                list(model.merger.parameters()) + \
+                list(model.downscaler.parameters()) + \
+                list(model.upscaler.parameters()),
+                lr = args.lr
+                )
+    else:
+        raise ValueError(f'The interpolation mode "{args.interpolation_mode}" is not valid')
 
 
     loss_fn = nn.MSELoss()

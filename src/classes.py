@@ -216,7 +216,7 @@ def give_NN_model(path, device='cpu'):
 class sharedUNet(nn.Module):
     # this class implement a special U Net architecture, in which weights are shared at different resolutions
 
-    def __init__(self, kernel_size, depth, channels, path, activation=nn.Tanh()):
+    def __init__(self, kernel_size, depth, channels, path, interpolation_mode='adaptive', activation=nn.Tanh()):
         # the constructor method
 
         super().__init__()
@@ -240,11 +240,44 @@ class sharedUNet(nn.Module):
                 padding_mode    = 'circular'
                 )
 
+        self.interpolation_mode = interpolation_mode
+
+        if self.interpolation_mode == 'adaptive':
+
+            self.downscaler =  nn.Conv1d(
+                    in_channels     = 1,
+                    out_channels    = 1,
+                    kernel_size     = 4,
+                    stride          = 2,
+                    padding         = 1,
+                    padding_mode    = 'circular'
+                    )
+
+            self.upscaler = nn.ConvTranspose1d(
+                    in_channels     = 1,
+                    out_channels    = 1,
+                    kernel_size     = 4,
+                    stride          = 2,
+                    padding         = 1,
+                    )
+
+        elif self.interpolation_mode != 'simple':
+            raise ValueError(f'The interpolation mode {self.interpolation_mode} is not valid.')
+
+
     def forward(self, x):
         # first, we replicate the input at different resolutions
         x1 = x
-        x2 = torchfunc.interpolate( x, size=x.shape[-1]//2 )
-        x3 = torchfunc.interpolate( x, size=x.shape[-1]//4 )
+
+        if self.interpolation_mode == 'simple':
+            x2 = torchfunc.interpolate( x, size=x.shape[-1]//2)
+            x3 = torchfunc.interpolate( x, size=x.shape[-1]//4)
+        elif self.interpolation_mode == 'adaptive':
+            # perform "adaptive" rescaling
+            x2 = self.downscaler(x1)
+            x3 = self.downscaler(x2)
+        else:
+            raise ValueError(f'The interpolation mode {self.interpolation_mode} is not valid.')
 
         # predict mu at different resolutions
         mu1 = self.model1(x1)
@@ -252,8 +285,15 @@ class sharedUNet(nn.Module):
         mu3 = 0.25*self.model3(x3)  # nees 1/4 rescaling of prediction
 
         # resize the predictions
-        mu2 = torchfunc.interpolate( mu2, size=x.shape[-1] )
-        mu3 = torchfunc.interpolate( mu3, size=x.shape[-1] )
+        if self.interpolation_mode == 'simple':
+            mu2 = torchfunc.interpolate( mu2, size=x.shape[-1])
+            mu3 = torchfunc.interpolate( mu3, size=x.shape[-1])
+        elif self.interpolation_mode == 'adaptive':
+            # perform "adaptive" rescaling
+            mu2 = self.upscaler(mu2)
+            mu3 = self.upscaler(self.upscaler(mu3))
+        else:
+            raise ValueError(f'The interpolation model {self.interpolation_mode} is not valid.')
 
         # concatenate predictions
         mus = torch.cat( (mu1,mu2,mu3), dim=1 )

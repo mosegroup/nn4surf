@@ -102,6 +102,13 @@ class Parser():
             help        = 'Number of periodic replicas to be considered'
             )
 
+        self.parser.add_argument(
+            '--interpolation_mode',
+            type        = str,
+            default     = 'adaptive',
+            help        = 'Set interpolation mode for different scales. "adaptive" uses (transposed)convolutions while "simple" uses bilinear interpolation'
+            )
+
         
 
 
