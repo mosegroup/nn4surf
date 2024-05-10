@@ -18,6 +18,7 @@ The code is organized in the following folders:
 * _src/_ folder containing source code for classes definition, argument parser for training and utilities
 * _trainin_logs/_ folder containing training logs (model snapshots at different epochs, images and train/validation losses)
 * _models/_ folder meant to contain trained models
+* _extra/_ folder containing other scripts
 
 Remember that trained models are torch.nn.Modules objects, and as such they can be loaded/saved/reused as needed!
 
