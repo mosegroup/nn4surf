@@ -2,14 +2,12 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import fft
-
 import random
 import os
 # === import external modules ===
 
 # <<< import nn4surf modules <<<
-from src.dataloader import *
+from src.dataloader import TabulatedSeries
 from src.utils import save_args
 from src.classes import convmodel
 from src.argparser import Parser
@@ -17,10 +15,8 @@ from src.argparser import Parser
 
     
 def main():
-    '''
-    Main training function
-    '''
-
+    # Main training function
+    
     arg_parser = Parser()
     args = arg_parser.parse_args()
 
@@ -43,16 +39,10 @@ def main():
     os.system( f'cp train.py {master_folder}/' )
     save_args(f'{master_folder}', args)
     
-    # <<< NN architecture <<<
-    kernel_size = args.kernel_size
-    depth       = args.depth
-    channels    = args.channels
-    # === NN architecture ===
-
     model = convmodel(
-        kernel_size     = kernel_size,
-        depth           = depth,
-        channels        = channels,
+        kernel_size     = args.kernel_size,
+        depth           = args.depth,
+        channels        = args.channels,
         activation      = torch.nn.Tanh()
         )
     

@@ -190,8 +190,9 @@ def give_NN_model(path, device='cpu'):
     if not path.endswith('.pt'):
         path = path + '.pt'
     
+    # hardcoded for now...
     model_for_params = convmodel(
-        kernel_size     = 21, # these are hardcoded for now... in future versions they will be no longer
+        kernel_size     = 21,
         depth           = 5,
         channels        = 20,
         activation      = nn.Tanh()
