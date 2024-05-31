@@ -213,6 +213,123 @@ def give_NN_model(path, device='cpu'):
     return model
 
 
+
+class Minimizer:
+    '''
+    This class implements the minimization procedure of tge F[h] free energy functional
+    '''
+    def __init__(
+        self,
+        model_path  :   str, # the path for the NN model to calculate the elastic energy
+        device      :   str = None
+        ) -> None :
+        
+        self.set_device(device)
+        self.reload_model(model_path)
+        
+        
+    def set_device(
+        self,
+        device  :   str
+        ) -> None :
+        '''
+        Set the device on which to run the minimization
+        '''
+        if device == 'cuda':
+            self.device = 'cuda'
+        elif device == 'cpu' or device is None:
+            self.device = 'cpu'
+        else:
+            raise ValueError(f'device {device} is not a valid key. Only "cuda" and "cpu" ara available.')
+        
+        
+    def reload_model(
+        self,
+        model_path  :   str
+        ) -> None :
+        '''
+        This function reloads model at path
+        '''
+        model_for_params = convmodel(
+                kernel_size     = 21,
+                depth           = 5,
+                channels        = 20,
+                activation      = nn.Tanh()
+                )
+
+        model = convmodel_no_parametrization(
+                kernel_size     = 21,
+                depth           = 5,
+                channels        = 20,
+                activation      = nn.Tanh()
+                )
+        
+        assert isinstance(model_path, str)
+        
+        if not model_path.endswith('.pt'):
+            model_path += '.pt'
+        
+        model_for_params.load_state_dict( torch.load(f'{model_path}') )
+
+        model.to(self.device)
+        model_for_params.to(self.device)
+
+        model.net = model_for_params.net
+        model.set_symmetry()
+        model = torch.jit.trace( model.forward, torch.randn(1,1,100).to(self.device) )
+        
+        self.model = model
+        self.model.double() # set model on float64 precision
+        del model, model_for_params
+        
+        
+    def minimize(
+        self,
+        profile,              # the seed to use for minimization
+        alpha       :   float   = 1e-2, # alpha parameter for minimization
+        steps_max   :   int     = 30_000,  # maximum number of iterations
+        max_tol     :   float   = 1e-4, # tollerance on the chemical potential
+        log         :   int     = 100,
+        eigen       :   float   = 0.04 # new eigenstrain
+        ) -> np.ndarray:
+        '''
+        This method minimizes the given profile
+        '''
+        with torch.no_grad():
+            if not isinstance(profile, torch.Tensor):
+                assert isinstance(profile, np.ndarray) # else, we will raise an error
+                profile = torch.from_numpy( profile )
+                
+            while profile.ndim < 3:
+                profile = profile.unsqueeze(0)
+            
+            dx = 1
+            
+            for step in range(steps_max):
+                # this is the actual minimization loop
+                dF_dh = kappagamma(profile, dx) + mu_wet(profile, dx) + (eigen/0.04)**2*self.model(profile-profile.mean())
+                dF_dh = dF_dh - dF_dh.mean() # remove mean value (i.e. out-project the non-conservative component of the "force")
+                
+                mean_residual = torch.abs( dF_dh ).mean()
+                max_residual = torch.abs( dF_dh ).max()
+                
+                if max_residual <= max_tol:
+                    return profile, dF_dh
+                else:
+                    profile -= alpha*dF_dh
+                    
+                if step % log == 0:
+                    print('='*20)
+                    print(f'Minimization step {step}')
+                    print(f'Maximum residual {max_residual}')
+                    print(f'Mean absolute residual {mean_residual}')
+            
+            print('Maximum number of iterations reached in minimization process. Returning')
+            return profile, dF_dh
+
+
+
+
 class sharedUNet(nn.Module):
     # this class implement a special U Net architecture, in which weights are shared at different resolutions
 

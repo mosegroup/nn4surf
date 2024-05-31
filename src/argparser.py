@@ -125,3 +125,119 @@ class Parser():
             args.graphics = True
 
         return args
+
+
+
+class MinimizerParser:
+    # This class implements a simple minimization parser
+
+    def __init__(self):
+
+        self.parser = ArgumentParser() # composition with a regular parser
+
+        self.parser.add_argument(
+            '--output_folder',
+            type        = str,
+            default     = 'minimizations',
+            help        = 'Folder in which minimization outputs will be stored'
+            )
+
+        self.parser.add_argument(
+            '--name',
+            type        = str,
+            default     = 'min',
+            help        = 'The specific minimization name'
+            )
+
+        self.parser.add_argument(
+            '--shift',
+            type        = float,
+            default     = 0.0,
+            help        = 'The heights of the profiles to be considered'
+            )
+
+        self.parser.add_argument(
+            '--read_profile',
+            action      = 'store_true',
+            help        = 'Reload profile (specify path with "--path" argument')
+            )
+
+        self.parser.add_argument(
+            '--profile_path',
+            type        = str,
+            help        = 'Path of the profile to be reloaded (either )'
+            )
+
+        self.parser.add_argument(
+            '--gaussian_area',
+            type        = float,
+            default     = 0.05,
+            help        = 'The area of the Gaussian dimple on top of shift'
+            )
+
+        self.parser.add_argument(
+            '--model_path',
+            type        = str,
+            default     = 'models/model.pt',
+            help        = 'Trained model path'
+            )
+
+        self.parser.add_argument(
+            '--device',
+            type        = str,
+            default     = 'cpu',
+            help        = 'Device to be used ("cpu", "cuda", "cuda:#" on multi-GPU systems)'
+            )
+
+        self.parser.add_argument(
+            '--alpha',
+            default     = 5e-2,
+            type        = float,
+            help        = 'Alpha parameter in steepest descent minimization'
+            )
+
+        self.parser.add_argument(
+            '--max_tol',
+            type        = float,
+            default     = 1e-4,
+            help        = 'Tolerance on maximum derivative value in minimization'
+            )
+
+        self.parser.add_argument(
+            '--eigen',
+            type        = float,
+            default     = 0.0399,
+            help        = 'Eigenstrain to be used in "rescaling trick"'
+            )
+
+        self.parser.add_argument(
+            '--steps_max',
+            type        = int,
+            default     = 300_000,
+            help        = 'Maximum number of iterations in minimization'
+            )
+
+
+
+    def parse_args(self):
+        # Parse argument and create folders
+
+        args = self.parser.parse_args()
+
+        if args.read_profile:
+            if not args.profile_path.endswith('.npy') or not args.profile_path.endswith('.dat'):
+                raise ValueError(f'The provided file for profile reloading "{args.profile_path}" does not have a .dat ot .npy extension.')
+
+        if not torch.cuda.is_available() and args.device.startswith('cuda'):
+            print('Cuda is not available on the current machine... falling back on cpu')
+            args.device = 'cpu'
+
+        if not os.path.isdir(args.output_folder):
+            os.mkdir(args.output_folder)
+
+        if os.path.isdir(f'{args.output_folder}/{args.name}'):
+            raise NameError(f'Path "{args.output_folder}/{args.name}" is not emtpy. Please, clean-up position or change minimization name.')
+
+
+        return args
+        
