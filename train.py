@@ -1,5 +1,6 @@
 # <<< import external modules <<<
 import torch
+import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -24,7 +25,7 @@ def main():
 
     if os.path.exists(master_folder):
         if os.listdir(master_folder) != []:
-            raise OSError(f'Folder {master_folder} is not empty. Please, remove it, empty it or change output folder to proceed.')
+            raise OSError(f'Folder "{master_folder}" is not empty. Please, remove it, empty it or change output folder to proceed.')
 
     try:
         os.mkdir(f'{master_folder}')
@@ -37,7 +38,7 @@ def main():
         pass
 
     os.system( f'cp train.py {master_folder}/' )
-    save_args(f'{master_folder}', args)
+    save_args(f'{master_folder}/args.txt', args)
     
     model = convmodel(
         kernel_size     = args.kernel_size,

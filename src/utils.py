@@ -18,7 +18,7 @@ from src.physics import MAX_LAMBDA # definition of constants/quantities
 # <<< specify float type <<<
 # these are different in case in the future we want to use different precision in calculation and saving (e.g. to save memory)
 FLOAT_TYPE_CALC = float
-FLAT_TYPE_SAVE  = float
+FLOAT_TYPE_SAVE  = float
 # === specift float type ===
 
 # <<< profile initialization utils <<<
@@ -94,9 +94,9 @@ def initial_rand_profile(
 
 # <<< log utils <<<
 
-def save_arg(path, args):
+def save_args(path, args):
     # simply save args at path
-    with open(path) as out_file:
+    with open(path, 'w+') as out_file:
         for arg in dir(args):
             if arg[0] != '_': # we don't need to save __name_, etc.
                 out_file.write( f'{arg} \t : \t {vars(args)[arg]}\n' )

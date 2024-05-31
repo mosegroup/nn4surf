@@ -10,10 +10,6 @@ import random
 import torch.nn.utils.parametrize as parametrize
 # --- import stuff ---
 
-'''
-This file contains classes and other utilities for training and running the model
-'''
-
 
 class FlipSymmetric(nn.Module):
     '''
@@ -221,12 +217,14 @@ class Minimizer:
     '''
     def __init__(
         self,
-        model_path  :   str, # the path for the NN model to calculate the elastic energy
-        device      :   str = None
+        model_path      :   str, # the path for the NN model to calculate the elastic energy
+        analytic_terms,
+        device          :   str = None
         ) -> None :
         
         self.set_device(device)
         self.reload_model(model_path)
+        self.analytic_terms = analytic_terms
         
         
     def set_device(
@@ -308,7 +306,7 @@ class Minimizer:
             
             for step in range(steps_max):
                 # this is the actual minimization loop
-                dF_dh = kappagamma(profile, dx) + mu_wet(profile, dx) + (eigen/0.04)**2*self.model(profile-profile.mean())
+                dF_dh = self.analytic_terms(profile, dx) + (eigen/0.04)**2*self.model(profile-profile.mean())
                 dF_dh = dF_dh - dF_dh.mean() # remove mean value (i.e. out-project the non-conservative component of the "force")
                 
                 mean_residual = torch.abs( dF_dh ).mean()

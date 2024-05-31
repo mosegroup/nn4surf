@@ -159,13 +159,13 @@ class MinimizerParser:
         self.parser.add_argument(
             '--read_profile',
             action      = 'store_true',
-            help        = 'Reload profile (specify path with "--path" argument')
+            help        = 'Reload profile (specify path with "--path" argument)'
             )
 
         self.parser.add_argument(
             '--profile_path',
             type        = str,
-            help        = 'Path of the profile to be reloaded (either )'
+            help        = 'Path of the profile to be reloaded (either .npy or .dat file)'
             )
 
         self.parser.add_argument(
@@ -237,6 +237,8 @@ class MinimizerParser:
 
         if os.path.isdir(f'{args.output_folder}/{args.name}'):
             raise NameError(f'Path "{args.output_folder}/{args.name}" is not emtpy. Please, clean-up position or change minimization name.')
+        else:
+            os.mkdir(f'{args.output_folder}/{args.name}')
 
 
         return args

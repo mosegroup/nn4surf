@@ -15,7 +15,7 @@ import random
 # <<< import nn4surf modules <<<
 from src.classes import give_NN_model
 from src.physics import kappagamma, mu_wet, derpar, derpar2
-from src.utils import save_args, np_to_tensor, reload_dat_profile, reload_npy_profile, save_state
+from src.utils import save_args, np_to_tensor, reload_dat_profile, reload_npy_profile, save_state, initial_rand_profile
 # === import n4surf modules ===
 
 
@@ -79,7 +79,7 @@ def main():
     if not os.path.exists(out_path):
         os.mkdir(out_path)
     else:
-        raise FileExistsError('Output folder already exists! Remove it or rename ouptut')
+        raise FileExistsError(f'Output folder "{out_path}" already exists! Remove it or rename ouptut')
     
     os.system(f'cp run_evo.py {out_path}/run_evo.py')
     
