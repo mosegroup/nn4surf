@@ -1,4 +1,4 @@
-# <<< import stuff <<<
+# <<< import external modules <<<
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,11 +6,14 @@ from numpy import fft
 
 import random
 import os
+# === import external modules ===
 
+# <<< import nn4surf modules <<<
 from src.dataloader import *
+from src.utils import save_args
 from src.classes import convmodel
 from src.argparser import Parser
-# === import stuff ===
+# === import nn4surf modules ===
 
     
 def main():
@@ -38,9 +41,8 @@ def main():
         pass
 
     os.system( f'cp train.py {master_folder}/' )
+    save_args(f'{master_folder}', args)
     
-    device = args.device
-
     # <<< NN architecture <<<
     kernel_size = args.kernel_size
     depth       = args.depth
@@ -54,7 +56,7 @@ def main():
         activation      = torch.nn.Tanh()
         )
     
-    model.to(device)
+    model.to(args.device)
     
     if args.model_path != 'None':
         model.load_state_dict(torch.load(args.model_path))
@@ -76,13 +78,11 @@ def main():
     train_set = TabulatedSeries( train_table_path, every=20 )
     valid_set = TabulatedSeries( valid_table_path, every=20 )
     
-    num_workers = args.nproc
-    
     train_dataloader = torch.utils.data.DataLoader(
         train_set,
         batch_size      = 512,
         shuffle         = True, # <- in the case of testing and validation, we want a fixed order for data
-        num_workers     = num_workers
+        num_workers     = args.nproc
         )
     
     
@@ -90,7 +90,7 @@ def main():
         valid_set,
         batch_size      = 128,
         shuffle         = False, # <- in the case of testing and validation, we want a fixed order for data
-        num_workers     = num_workers
+        num_workers     = args.nproc
         )
 
     for epoch in range(epochs):
@@ -107,8 +107,8 @@ def main():
                 print('DEBUG MODE ---> breaking')
                 break
             
-            profile = profile.to(device)
-            elastic_mu = elastic_mu.to(device)
+            profile = profile.to(args.device)
+            elastic_mu = elastic_mu.to(args.device)
             
             optimizer.zero_grad() #zero-outthe gradients
             
@@ -137,8 +137,8 @@ def main():
 
             for profile, elastic_mu, x in valid_dataloader:
 
-                elastic_mu = elastic_mu.to(device)
-                profile = profile.to(device)
+                elastic_mu = elastic_mu.to(args.device)
+                profile = profile.to(args.device)
 
                 mu_pred = model(profile)
                 loss = loss_fn(mu_pred, elastic_mu)

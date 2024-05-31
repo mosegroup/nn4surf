@@ -13,22 +13,22 @@ import random
 # sorry for the global use... a future cleanup will solve this
 
 # SiGe interface constants
-gamma_Ge = 6        # Ge [ev/nm2]
-gamma_Si = 8.7      # Si
-d_gamma = 0.27      # denominator in exponential term in wetting energy
-at_vol=1
-M = 5 # (Tomado de la tesis de Rovaris)
+gamma_Ge    = 6        # Ge [ev/nm2]
+gamma_Si    = 8.7      # Si
+d_gamma     = 0.27      # denominator in exponential term in wetting energy
+at_vol      = 1
+M           = 5 # (Tomado de la tesis de Rovaris)
 
 #Elastic constants
-strain=0.04
-young=103*6.25 # Ge [eV/nm^3]
-poisson= 0.26  # Ge
+strain          = 0.04
+young           = 103*6.25 # Ge [eV/nm^3]
+poisson         = 0.26  # Ge
 
-crit_lambda=np.pi*gamma_Ge*(1-poisson**2)/young/strain**2
-max_lambda=4/3*crit_lambda
+CRIT_LAMBDA     = np.pi*gamma_Ge*(1-poisson**2)/young/strain**2
+MAX_LAMBDA      = 4/3*crit_lambda
 
-lame_lambda=young*poisson/(1+poisson)/(1-2*poisson)
-lame_mu=young/2/(1+poisson)
+lame_lambda     = young*poisson/(1+poisson)/(1-2*poisson)
+lame_mu         = young/2/(1+poisson)
 
 b = 0.01
 L = 100
