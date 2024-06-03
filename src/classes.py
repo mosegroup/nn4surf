@@ -205,8 +205,11 @@ def give_NN_model(path, device='cpu'):
     
     model.net = model_for_params.net
     model.set_symmetry()
-    model = torch.jit.trace( model.forward, torch.randn(1,1,100).to(device) ) # traced objects are faster
-    
+    model.to(device)
+    model.double()
+
+    model = torch.jit.trace( model.forward, torch.randn(1,1,100, dtype=torch.double).to(device) ) # traced objects are faster
+
     return model
 
 

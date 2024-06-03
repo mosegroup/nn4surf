@@ -13,6 +13,7 @@ import random
 # === import utility modules ===
 
 # <<< import nn4surf modules <<<
+from src.argparser import EvolutionParser
 from src.classes import give_NN_model
 from src.physics import kappagamma, mu_wet, derpar, derpar2
 from src.utils import save_args, np_to_tensor, reload_dat_profile, reload_npy_profile, save_state, initial_rand_profile
@@ -22,39 +23,39 @@ from src.utils import save_args, np_to_tensor, reload_dat_profile, reload_npy_pr
 def main():
     # The main function; torch is used as backend (parallelization, GPU usage possibility), but in the future numba/compiled stuff may be considered
     
+    argparser   = EvolutionParser()
+    args        = argparser.parse_args()
+
     torch.set_grad_enabled(False) # get rid of gradient calculations: we are no longer training
     
-    out_path    = 'out/growth_1e-4_64bit'
+    out_path    = f'{args.output_folder}/{args.name}'
     
     # <<< define material constants <<<
-    gamma_Ge    = 6        # Ge [ev/nm2]
-    gamma_Si    = 8.7      # Si
-    d_gamma     = 0.27     # denominator in exponential term in wetting energy
-    M           = 5        # mobility factor (from Fabrizio's thesis)
-    path_model      = 'models/model_paper'     # path at which the model is saved
-    path_profile    = None             # path to reload profile (set to None if you want a random profile)
-    flux_fn     = lambda x: 1e-4
+    M            = args.M                 # mobility factor (from Fabrizio's thesis)
+    path_model   = args.model_path    # path at which the model is saved
+    path_profile = args.path_profile  # path to reload profile (set to None if you want a random profile)
+    flux_fn      = lambda x: args.flux_value     # This is a constant for now. In the future, we will support custom python callables for flux and analytical terms in evolution
     # === define material constants ===
     
     # <<< time integration variables <<<
-    dx          = 1             # spatial discretization
-    dt          = 1e-3          # time integration step
-    tot_steps   = 50_000_000    # total number of steps
-    log_freq    = 5_000         # logging frequency
-    L           = 100           # domain length
-    device      = 'cpu'         # device used for running the simulation
+    dx          = args.dx           # spatial discretization
+    dt          = args.dt           # time integration step
+    tot_steps   = args.tot_steps    # total number of steps
+    log_freq    = args.log_freq     # logging frequency
+    L           = args.L            # domain length
+    device      = args.device       # device used for running the simulation
     # === time integration variables ===
     
     # <<< define initial conditions <<<
-    num_fourier_components  = 15    # number of random fourier components
-    init_amplitude          = 1e-3  # this is the amplitude of the initial profile
-    init_mean               = 0.0   # this is the mean for the initial profile
-    amplitude_check         = 1e-2  # this is the amplitude check value
+    num_fourier_components  = args.num_fourier_components   # number of random fourier components
+    init_amplitude          = args.init_amplitude           # this is the amplitude of the initial profile
+    init_mean               = args.init_mean                # this is the mean for the initial profile
+    amplitude_check         = args.amplitude_check          # this is the amplitude check value
     # === define initial conditions  ===
 
     # <<< profile initialization <<<
     x_numpy   = np.arange(L)
-    if path_profile is None:
+    if path_profile.upper() == 'NONE':
         y   = initial_rand_profile(x_numpy, num_fourier_components, init_amplitude, init_mean)
     elif path_profile.endswith('.npy'):
         y   = reload_npy_profile(path_profile)
@@ -62,6 +63,9 @@ def main():
         y   = reload_dat_profile(path_profile)
     else:
         raise ValueError(f'Input file {path_profile} has not a valid format.')
+
+    if path_profile.upper() != 'NONE' and args.L != y.shape[-1]:
+        raise ValueError(f'The L value {L} is not consistent with the reloaded profile shape {y.shape[-1]}.')
     # === profile intialization ===
     
     # === define initial conditions ===
@@ -73,13 +77,7 @@ def main():
     
     # <<< load model <<<
     mu_elastic = give_NN_model(path_model, device) # we don't use model_wrapper as we are working in plain torch
-    mu_elastic.double()
     # === load model ===
-    
-    if not os.path.exists(out_path):
-        os.mkdir(out_path)
-    else:
-        raise FileExistsError(f'Output folder "{out_path}" already exists! Remove it or rename ouptut')
     
     os.system(f'cp run_evo.py {out_path}/run_evo.py')
     

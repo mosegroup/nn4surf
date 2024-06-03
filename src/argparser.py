@@ -116,9 +116,8 @@ class Parser():
         Parsing argument method
         '''
         args = self.parser.parse_args()
-        if not torch.cuda.is_available() and args.device.startswith('cuda'):
-            print('Cuda is not available on the current machine... falling back on cpu')
-            args.device = 'cpu'
+        args = check_cuda(args)
+
         if args.no_graphics:
             args.graphics = False
         else:
@@ -223,23 +222,164 @@ class MinimizerParser:
         # Parse argument and create folders
 
         args = self.parser.parse_args()
+        args = check_cuda(args)
 
         if args.read_profile:
             if not args.profile_path.endswith('.npy') or not args.profile_path.endswith('.dat'):
                 raise ValueError(f'The provided file for profile reloading "{args.profile_path}" does not have a .dat ot .npy extension.')
 
-        if not torch.cuda.is_available() and args.device.startswith('cuda'):
-            print('Cuda is not available on the current machine... falling back on cpu')
-            args.device = 'cpu'
-
         if not os.path.isdir(args.output_folder):
             os.mkdir(args.output_folder)
 
         if os.path.isdir(f'{args.output_folder}/{args.name}'):
-            raise NameError(f'Path "{args.output_folder}/{args.name}" is not emtpy. Please, clean-up position or change minimization name.')
+            raise NameError(f'Path "{args.output_folder}/{args.name}" is not empty. Please, clean-up position or change minimization name.')
         else:
             os.mkdir(f'{args.output_folder}/{args.name}')
 
 
         return args
-        
+    
+
+class EvolutionParser:
+    # This class implements the argument parser for the evolution script
+    def __init__(self):
+
+        self.parser = ArgumentParser()
+
+        self.parser.add_argument(
+            '--M',
+            type        = float,
+            default     = 5, # default SiGe value from Fabrizio's thesis
+            help        = 'Surface mobility constant'
+            )
+
+        self.parser.add_argument(
+            '--output_folder',
+            type        = str,
+            default     = 'out',
+            help        = 'Output folder name'
+            )
+
+        self.parser.add_argument(
+            '--name',
+            type        = str,
+            default     = 'evo',
+            help        = 'Id for the evolution'
+            )
+
+        self.parser.add_argument(
+            '--model_path',
+            type        = str,
+            help        = 'Model path'
+            )
+
+        self.parser.add_argument(
+            '--path_profile',
+            type        = str,
+            default     = 'None',
+            help        = 'Path to be reloaded (set to None to generate a new profile)'
+            )
+
+        self.parser.add_argument(
+            '--flux_value',
+            type        = float,
+            default     = 0.0,
+            help        = 'Deposition flux (per unit of time)'
+            )
+
+        self.parser.add_argument(
+            '--dx',
+            type        = float,
+            default     = 1.0,
+            help        = 'Spatial discretization value (modify to exploit "rescaling" trick)'
+            )
+
+        self.parser.add_argument(
+            '--dt',
+            type        = float,
+            default     = 1e-3,
+            help        = 'Time integration step'
+            )
+
+        self.parser.add_argument(
+            '--tot_steps',
+            type        = int,
+            default     = 1_000_000,
+            help        = 'Number of integration steps'
+            )
+
+        self.parser.add_argument(
+            '--log_freq',
+            type        = int,
+            default     = 5_000,
+            help        = 'Output frequency (in integration steps)'
+            )
+
+        self.parser.add_argument(
+            '--L',
+            type        = int,
+            default     = 100,
+            help        = 'Domain length (in terms of collocation points'
+            )
+
+        self.parser.add_argument(
+            '--device',
+            type        = str,
+            default     = 'cpu',
+            help        = 'Device to be used to run evolution (cpu, cuda or cuda:# on multy-GPU systems)'
+            )
+
+        self.parser.add_argument(
+            '--num_fourier_components',
+            type        = int,
+            default     = 15,
+            help        = 'Number of random Fourier components to be used in the generation of new profile (if path_profile is "None")'
+            )
+
+        self.parser.add_argument(
+            '--init_amplitude',
+            type        = float,
+            default     = 1e-3,
+            help        = 'Amplitude of the generated initial profile (if path_profile is "None")'
+            )
+
+        self.parser.add_argument(
+            '--init_mean',
+            type        = float,
+            default     = 0.0,
+            help        = 'Mean of the generated initial profile (if path_profile is "None")'
+            )
+
+        self.parser.add_argument(
+            '--amplitude_check',
+            type        = float,
+            default     = 1e-2,
+            help        = 'Amplitude check for flatness'
+            )
+
+
+    def parse_args(self):
+        # Parse argument and create folders
+
+        args = self.parser.parse_args()
+        args = check_cuda(args)
+
+        if not os.path.isdir(args.output_folder):
+            os.mkdir(args.output_folder)
+
+        if os.path.isdir(f'{args.output_folder}/{args.name}'):
+            raise NameError(f'Path "{args.output_folder}/{args.name}" is not empty. Please, clean-up position or change minimization name.')
+        else:
+            os.mkdir(f'{args.output_folder}/{args.name}')
+
+
+        return args
+
+
+def check_cuda(args):
+    if not torch.cuda.is_available() and args.device.startswith('cuda'):
+        print('Cuda is not available on the current machine... falling back on cpu')
+        args.device = 'cpu'
+    return args
+
+
