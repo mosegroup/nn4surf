@@ -1,23 +1,23 @@
-# <<< import stuff <<<
+# <<< import external modules <<<
 import torch
+import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import fft
-
 import random
 import os
+# === import external modules ===
 
-from src.dataloader import *
+# <<< import nn4surf modules <<<
+from src.dataloader import TabulatedSeries
+from src.utils import save_args
 from src.classes import convmodel
 from src.argparser import Parser
-# === import stuff ===
+# === import nn4surf modules ===
 
     
 def main():
-    '''
-    Main training function
-    '''
-
+    # Main training function
+    
     arg_parser = Parser()
     args = arg_parser.parse_args()
 
@@ -25,7 +25,7 @@ def main():
 
     if os.path.exists(master_folder):
         if os.listdir(master_folder) != []:
-            raise OSError(f'Folder {master_folder} is not empty. Please, remove it, empty it or change output folder to proceed.')
+            raise OSError(f'Folder "{master_folder}" is not empty. Please, remove it, empty it or change output folder to proceed.')
 
     try:
         os.mkdir(f'{master_folder}')
@@ -38,23 +38,16 @@ def main():
         pass
 
     os.system( f'cp train.py {master_folder}/' )
+    save_args(f'{master_folder}/args.txt', args)
     
-    device = args.device
-
-    # <<< NN architecture <<<
-    kernel_size = args.kernel_size
-    depth       = args.depth
-    channels    = args.channels
-    # === NN architecture ===
-
     model = convmodel(
-        kernel_size     = kernel_size,
-        depth           = depth,
-        channels        = channels,
+        kernel_size     = args.kernel_size,
+        depth           = args.depth,
+        channels        = args.channels,
         activation      = torch.nn.Tanh()
         )
     
-    model.to(device)
+    model.to(args.device)
     
     if args.model_path != 'None':
         model.load_state_dict(torch.load(args.model_path))
@@ -76,13 +69,11 @@ def main():
     train_set = TabulatedSeries( train_table_path, every=20 )
     valid_set = TabulatedSeries( valid_table_path, every=20 )
     
-    num_workers = args.nproc
-    
     train_dataloader = torch.utils.data.DataLoader(
         train_set,
         batch_size      = 512,
         shuffle         = True, # <- in the case of testing and validation, we want a fixed order for data
-        num_workers     = num_workers
+        num_workers     = args.nproc
         )
     
     
@@ -90,7 +81,7 @@ def main():
         valid_set,
         batch_size      = 128,
         shuffle         = False, # <- in the case of testing and validation, we want a fixed order for data
-        num_workers     = num_workers
+        num_workers     = args.nproc
         )
 
     for epoch in range(epochs):
@@ -107,8 +98,8 @@ def main():
                 print('DEBUG MODE ---> breaking')
                 break
             
-            profile = profile.to(device)
-            elastic_mu = elastic_mu.to(device)
+            profile = profile.to(args.device)
+            elastic_mu = elastic_mu.to(args.device)
             
             optimizer.zero_grad() #zero-outthe gradients
             
@@ -137,8 +128,8 @@ def main():
 
             for profile, elastic_mu, x in valid_dataloader:
 
-                elastic_mu = elastic_mu.to(device)
-                profile = profile.to(device)
+                elastic_mu = elastic_mu.to(args.device)
+                profile = profile.to(args.device)
 
                 mu_pred = model(profile)
                 loss = loss_fn(mu_pred, elastic_mu)

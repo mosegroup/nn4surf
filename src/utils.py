@@ -1,85 +1,169 @@
-# <<< importing stuff <<<
+# This module contains utility functions shared between scripts.
+
+# <<< import external modules <<<
 import numpy as np
-import numpy.fft as fft
-import matplotlib.pyplot as plt
-import os
+from scipy.interpolate import lagrange
+from numpy.polynomial.polynomial import Polynomial
 import torch
 import random
-# === importing stuff ===
+import time
+import os
+# === import external modules ===
+
+# <<< import nn4surf modules <<<
+from src.physics import MAX_LAMBDA # definition of constants/quantities
+# === import nn4surf modules ===
 
 
-# <<< global constants <<<
+# <<< specify float type <<<
+# these are different in case in the future we want to use different precision in calculation and saving (e.g. to save memory)
+FLOAT_TYPE_CALC = float
+FLOAT_TYPE_SAVE  = float
+# === specift float type ===
 
-# sorry for the global use... a future cleanup will solve this
+# <<< profile initialization utils <<<
 
-# SiGe interface constants
-gamma_Ge = 6        # Ge [ev/nm2]
-gamma_Si = 8.7      # Si
-d_gamma = 0.27      # denominator in exponential term in wetting energy
-at_vol=1
-M = 5 # (Tomado de la tesis de Rovaris)
-
-#Elastic constants
-strain=0.04
-young=103*6.25 # Ge [eV/nm^3]
-poisson= 0.26  # Ge
-
-crit_lambda=np.pi*gamma_Ge*(1-poisson**2)/young/strain**2
-max_lambda=4/3*crit_lambda
-
-lame_lambda=young*poisson/(1+poisson)/(1-2*poisson)
-lame_mu=young/2/(1+poisson)
-
-b = 0.01
-L = 100
-
-# === global constants ===
-
-def derpar(hprof1,dx):
+def init_profile_gaussian_dimple(
+    domain  :   np.ndarray,
+    volume  :   float,
+    hbase   :   float
+    ) -> np.ndarray :
     '''
-    First derivative implementation (finite central difference)
+    This genarates a gaussian profile with a given volume under the curve (+ base)
     '''
-    narr=hprof1.shape[-1]
-    hf=0.0*hprof1
-    hf[0,0,0]=(hprof1[0,0,1]-hprof1[0,0,narr-1])/(2*dx)
-    hf[0,0,1:narr-1]=(hprof1[0,0,2:narr]-hprof1[0,0,0:narr-2])/(2*dx)
-    hf[0,0,narr-1]=(hprof1[0,0,0]-hprof1[0,0,narr-2])/(2*dx)
+    
+    L       = domain.max() - domain.min()
+    sigma   = L/4
+    
+    profile = np.zeros( domain.shape )
+    
+    volume  = volume
+    
+    for shift in [-L, 0, L]:
+        profile += np.exp( -(domain + shift - domain.mean())**2/(2*sigma**2) )
+    
+    profile = volume * profile/profile.mean() + hbase # renormalize the integral of the profile
+    
+    return profile
 
-    return hf
+
+def initial_rand_profile(
+    x           : np.ndarray,
+    num         : int,
+    a_initial   : float,
+    mean_val    : float
+    ) -> np.ndarray:
+    '''
+    This returns a profile with a given initial amplitude (from Luis)
+    '''
+    L   = x.max() - x.min()
+    N   = len(x)
+
+    height_tot  = 0
+
+    for j in range(num):
+        ini_wave    = np.random.uniform(low = 15, high = 100)
+        desfase     = np.random.uniform(low = 0, high =10)
+        height      = -a_initial*np.cos(2*np.pi/ini_wave*x + desfase)
+        height_tot  = height_tot+height
+    
+    gap     = int(np.floor(10))
+    
+    x       = np.array([N-gap-1, N-gap, N-gap+1, N-1, gap, gap+1])
+    y       = height_tot[x]
+
+    xp      = [-gap-1, -gap, -gap+1, gap-1, gap, gap+1]
+    poly    = lagrange(xp, y)
+    
+    sub_data    = range(N-gap,N)
+    sub         = range(-gap,0)
+    height_tot[sub_data] = Polynomial(poly.coef[::-1])(sub)
+
+    sub_data    = range(gap)
+    sub         = range(gap)
+    height_tot[sub_data] = Polynomial(poly.coef[::-1])(sub) # this is necessary to make the profile periodic, as we are not necessarily using lambdas consistent with domain boundaries
+
+    height_tot  -= height_tot.mean()
+    height_tot   = height_tot*a_initial/(max(height_tot)-min(height_tot))
+    height_tot   = height_tot + mean_val
+    
+    return height_tot
+
+# === profile initialization utils  ===
 
 
-def derpar2(hprof1,dx):
-    '''
-    Second derivative implementation (finite central difference)
-    '''
-    narr=hprof1.shape[-1]
-    hf2=0.0*hprof1
-    hf2[0,0,0]=(hprof1[0,0,1]-2*hprof1[0,0,0]+hprof1[0,0,narr-1])/(dx**2)
-    hf2[0,0,1:narr-1]=(hprof1[0,0,2:narr]-2*hprof1[0,0,1:narr-1]+hprof1[0,0,0:narr-2])/(dx**2)
-    hf2[0,0,narr-1]=(hprof1[0,0,0]-2*hprof1[0,0,narr-1]+hprof1[0,0,narr-2])/(dx**2)
+# <<< log utils <<<
 
-    return hf2
+def save_args(path, args):
+    # simply save args at path
+    with open(path, 'w+') as out_file:
+        for arg in dir(args):
+            if arg[0] != '_': # we don't need to save __name_, etc.
+                out_file.write( f'{arg} \t : \t {vars(args)[arg]}\n' )
 
-def gamma(h):
-    '''
-    Surface energy (as a function of h)
-    '''
-    return gamma_Ge + (gamma_Si - gamma_Ge)*torch.exp(-h/d_gamma)
 
-def dgamma_dh(h):
+def save_state(step, arrays, master_path):
     '''
-    gamma derivative
+    This saves arrays as a .npy file
     '''
-    return -((gamma_Si - gamma_Ge)/d_gamma)*torch.exp(-h/d_gamma)
+    arrays_tosave = tuple([array.cpu().squeeze().numpy().astype(FLOAT_TYPE_SAVE) for array in arrays])
+    
+    np.save(
+        f'{master_path}/snapt_{step}',
+        np.column_stack(arrays_tosave)
+        )
 
-def kappagamma(h, dx):
-    '''
-    Curvature contribution to the chemical potential
-    '''
-    return -gamma(h)*derpar2(h, dx)/(1 + derpar(h, dx)**2)**(3/2)
+# === log utils ===
+    
+    
+# <<< type conversion <<<
 
-def mu_wet(h, dx):
+def np_to_tensor(array, device):
     '''
-    This is the full wetting contribution
+    This converts array to device and put to tensor if needed
     '''
-    return dgamma_dh(h)*(1/torch.sqrt(1 + derpar(h, dx)**2))
+    if not isinstance(array, torch.Tensor):
+        if isinstance(array, np.ndarray):
+            array = torch.from_numpy(array).double()
+        else:
+            raise ValueError('The passed array is not a numpy array.')
+        
+    while array.ndim < 3: # add required dimension to be run on model
+        array = array.unsqueeze(0)
+        
+    array = array.to(device) # put to the required device
+    
+    return array
+
+# === type conversion ==
+
+
+# <<< reading utils <<<
+
+def reload_dat_profile(path, formatting='short'):
+    '''
+    Returns the profile saved in dat file
+    '''
+    data = np.loadtxt(path)
+    if formatting == 'long':
+        return data[:-1:20, 2] # this serves as a direct interface with FEM output calculations
+    elif formatting == 'short':
+        return data[:,2]
+    elif formatting == 'NN':
+        return data[:,3]
+    elif isinstance(formatting, str):
+        raise ValueError(f'Value {formatting} for opening format encountered in loading .dat file is not valid.')
+    else:
+        raise ValueError(f'Offending formatting value in loading .dat file (type {type(formatting)}).')
+
+
+def reload_npy_profile(path):
+    '''
+    Returns the profile saved in .npy file (if it is the only element)
+    '''
+    profile = np.load(path)
+    if profile.ndim != 1:
+        profile = profile[:,0]
+    return np.squeeze(profile).astype(FLOAT_TYPE_CALC) # casting to right dimension in case of different precision
+
+# === reading utils ===
