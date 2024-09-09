@@ -153,7 +153,7 @@ def main():
         # <<< graphical stuff <<<
         if args.graphics:
             for num_sample in range(10):
-                # this prints some examples to have a visual assessment of the training (NOT randomized)
+                # this prints some examples to have a visual assessment of tye training (NOT randomized)
                 try:
                     os.mkdir(f'{master_folder}/epoch_{epoch}')
                 except:
@@ -165,7 +165,6 @@ def main():
                     plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_{num_sample}.png')
                     plt.close()
 
-
                 elif args.mode == 'strain':
                     plt.plot(x[num_sample,0,...], mu_pred[num_sample,0,...].detach().cpu(), label='Predicted exx')
                     plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True exx')
@@ -175,6 +174,25 @@ def main():
 
                     plt.plot(x[num_sample,0,...], mu_pred[num_sample,1,...].detach().cpu(), label='Predicted eyy')
                     plt.plot(x[num_sample,0,...], elastic_mu[num_sample,1,...].detach().cpu(), label='True eyy')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_yy_{num_sample}.png')
+                    plt.close()
+
+                elif args.mode == 'strain3':
+                    plt.plot(x[num_sample,0,...], mu_pred[num_sample,0,...].detach().cpu(), label='Predicted exx')
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True exx')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_xx_{num_sample}.png')
+                    plt.close()
+
+                    plt.plot(x[num_sample,0,...], mu_pred[num_sample,0,...].detach().cpu(), label='Predicted exy')
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True exy')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_xy_{num_sample}.png')
+                    plt.close()
+
+                    plt.plot(x[num_sample,0,...], mu_pred[num_sample,2,...].detach().cpu(), label='Predicted eyy')
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,2,...].detach().cpu(), label='True eyy')
                     plt.legend()
                     plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_yy_{num_sample}.png')
                     plt.close()

@@ -43,6 +43,8 @@ class TabulatedSeries(torch.utils.data.Dataset):
             data = np.loadtxt(path, skiprows=1, usecols=(0,1,2))
         elif self.mode == 'strain':
             data = np.loadtxt(path, skiprows=1, usecols=(0,1,3,5)) # load x,y,exx,eyy (exy determined by normal stress conditions)
+        elif self.mode == 'strain3':
+            data = np.loadtxt(path. skiprows=1, usecols((0,1,3,4,5)))
         else:
             raise NotImplementedError(f'{self.mode} mode is not implemented yet')
         return data
@@ -92,6 +94,31 @@ class TabulatedSeries(torch.utils.data.Dataset):
             profile, epsxx, epsyy, x = self.numpyfy( [profile, epsxx, epsyy, x] )
 
             eps = torch.cat((epsxx, epsyy), dim=0)
+
+            if torch.rand(1).item() <= 0.5:
+                x           = x.flip(-1)
+                profile     = profile.flip(-1)
+                eps         = eps.flip(-1)
+
+            profile -= profile.mean(dim=-1, keepdim=True)
+            return profile, eps, x
+
+        elif self.mode == 'strain3':
+
+            profile, epsxx, epsxy, epsyy, x = data[:-1:self.every,1], data[:-1:self.every,2], data[:-1:self.every,3], data[:-1:self.every,4], data[:-1:self.every,0]
+
+            if self.replicas > 1:
+                raise NotImplementedError(f'Replicas are not implemented yet in strain mode.')
+
+            profile, epsxx, epsxy, epsyy, x = self.numpyfy( [profile, epsxx, epsxy, epsyy, x] )
+
+            eps = torch.cat((epsxx, epsxy, epsyy), dim=0)
+            
+            if torch.rand(1).item() <= 0.5:
+                x           = x.flip(-1)
+                profile     = profile.flip(-1)
+                eps         = eps.flip(-1)
+
             profile -= profile.mean(dim=-1, keepdim=True)
             return profile, eps, x
 

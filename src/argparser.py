@@ -113,7 +113,7 @@ class Parser():
             '--mode',
             type        = str,
             default     = 'mu',
-            help        = 'Variable to be used in training ("mu" for full elastic energy, "strain" for independent strain field components)'
+            help        = 'Variable to be used in training ("mu" for full elastic energy, "strain" for independent strain field components, "strain3" for sull strain field)'
             )
 
 
