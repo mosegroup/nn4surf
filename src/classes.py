@@ -52,6 +52,9 @@ class convmodel(nn.Module):
             elif kk == self.depth-1 and self.mode == 'strain':
                 out_channels    = 2
                 activation      = nn.Identity()
+            elif kk == self.depth-1 and self.mode == 'strain3':
+                out_channels    = 3
+                activation      = nn.Identity()
             else:
                 out_channels    = self.channels
                 activation      = self.activation
@@ -165,7 +168,7 @@ class model_wrapper:
         with torch.no_grad(): # disable gradient tracking, as we should be in evaluation mode
             
             if isinstance(x, np.ndarray):
-                x = torch.from_numpy(x).float().to(self.device)
+                x = torch.from_numpy(x).to(self.device)
             elif isinstance(x, list):
                 x = torch.tensor(x, device=self.device)
             elif not isinstance(x, torch.Tensor):

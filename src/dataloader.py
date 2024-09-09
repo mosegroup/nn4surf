@@ -44,7 +44,7 @@ class TabulatedSeries(torch.utils.data.Dataset):
         elif self.mode == 'strain':
             data = np.loadtxt(path, skiprows=1, usecols=(0,1,3,5)) # load x,y,exx,eyy (exy determined by normal stress conditions)
         elif self.mode == 'strain3':
-            data = np.loadtxt(path. skiprows=1, usecols((0,1,3,4,5)))
+            data = np.loadtxt(path, skiprows=1, usecols=(0,1,3,4,5))
         else:
             raise NotImplementedError(f'{self.mode} mode is not implemented yet')
         return data
