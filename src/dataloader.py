@@ -41,6 +41,8 @@ class TabulatedSeries(torch.utils.data.Dataset):
     def readdata(self, path):
         if self.mode == 'mu':
             data = np.loadtxt(path, skiprows=1, usecols=(0,1,2))
+        elif self.mode == 'strain':
+            data = np.loadtxt(path, skiprows=1, usecols=(0,1,3,5)) # load x,y,exx,eyy (exy determined by normal stress conditions)
         else:
             raise NotImplementedError(f'{self.mode} mode is not implemented yet')
         return data
@@ -58,25 +60,43 @@ class TabulatedSeries(torch.utils.data.Dataset):
         
         line = self.table[idx]
         data = self.readdata(line)
-        
-        profile, mu_eps, x = data[:-1:self.every,1], data[:-1:self.every,2], data[:-1:self.every,0]
-        
-        if self.replicas > 1:
-            profile = np.tile(profile, self.replicas)
-            mu_eps  = np.tile(mu_eps, self.replicas)
-            dx = x[1]-x[0]
-            x = np.linspace(0,mu_eps.shape[-1]*dx,mu_eps.shape[-1])
 
-        profile, mu_eps, x = self.numpyfy( [profile, mu_eps, x] )
-        
-        if torch.rand(1).item() <= 0.5:
-            x           = x.flip(-1)
-            profile     = profile.flip(-1)
-            mu_eps      = mu_eps.flip(-1)
+        if self.mode == 'mu':
             
-        profile -= profile.mean(dim=-1, keepdim=True)
+            profile, mu_eps, x = data[:-1:self.every,1], data[:-1:self.every,2], data[:-1:self.every,0]
+            
+            if self.replicas > 1:
+                profile = np.tile(profile, self.replicas)
+                mu_eps  = np.tile(mu_eps, self.replicas)
+                dx = x[1]-x[0]
+                x = np.linspace(0,mu_eps.shape[-1]*dx,mu_eps.shape[-1])
 
-        return profile, mu_eps, x
+            profile, mu_eps, x = self.numpyfy( [profile, mu_eps, x] )
+            
+            if torch.rand(1).item() <= 0.5:
+                x           = x.flip(-1)
+                profile     = profile.flip(-1)
+                mu_eps      = mu_eps.flip(-1)
+                
+            profile -= profile.mean(dim=-1, keepdim=True)
+
+            return profile, mu_eps, x
+
+        elif self.mode == 'strain':
+
+            profile, epsxx, epsyy, x = data[:-1:self.every,1], data[:-1:self.every,2], data[:-1:self.every,3], data[:-1:self.every,0]
+
+            if self.replicas > 1:
+                raise NotImplementedError(f'Replicas are not implemented yet in strain mode.')
+
+            profile, epsxx, epsyy, x = self.numpyfy( [profile, epsxx, epsyy, x] )
+
+            eps = torch.cat((epsxx, epsyy), dim=0)
+            profile -= profile.mean(dim=-1, keepdim=True)
+            return profile, eps, x
+
+        else:
+            raise ValueError(f'It seems that training set loading mode is {self.mode}. Something nasty may be going on...')
     
 
     

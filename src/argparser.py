@@ -108,7 +108,13 @@ class Parser():
             default     = 'adaptive',
             help        = 'Set interpolation mode for different scales. "adaptive" uses (transposed)convolutions while "simple" uses bilinear interpolation'
             )
-        
+
+        self.parser.add_argument(
+            '--mode',
+            type        = str,
+            default     = 'mu',
+            help        = 'Variable to be used in training ("mu" for full elastic energy, "strain" for independent strain field components)'
+            )
 
 
     def parse_args(self):

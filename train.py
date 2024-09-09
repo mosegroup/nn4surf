@@ -44,6 +44,7 @@ def main():
         kernel_size     = args.kernel_size,
         depth           = args.depth,
         channels        = args.channels,
+        mode            = args.mode,
         activation      = torch.nn.Tanh()
         )
     
@@ -66,8 +67,8 @@ def main():
     train_table_path = args.train_set
     valid_table_path = args.valid_set
         
-    train_set = TabulatedSeries( train_table_path, every=20 )
-    valid_set = TabulatedSeries( valid_table_path, every=20 )
+    train_set = TabulatedSeries( train_table_path, mode=args.mode, every=20 )
+    valid_set = TabulatedSeries( valid_table_path, mode=args.mode, every=20 )
     
     train_dataloader = torch.utils.data.DataLoader(
         train_set,
@@ -158,11 +159,25 @@ def main():
                 except:
                     pass
 
-                plt.plot(x[num_sample,0,...], mu_pred[num_sample,0,...].detach().cpu(), label='Predicted energy')
-                plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True energy')
-                plt.legend()
-                plt.savefig(f'{master_folder}/epoch_{epoch}/rho_{num_sample}.png')
-                plt.close()
+                if args.mode == 'mu':
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True energy')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_{num_sample}.png')
+                    plt.close()
+
+
+                elif args.mode == 'strain':
+                    plt.plot(x[num_sample,0,...], mu_pred[num_sample,0,...].detach().cpu(), label='Predicted exx')
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,0,...].detach().cpu(), label='True exx')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_xx_{num_sample}.png')
+                    plt.close()
+
+                    plt.plot(x[num_sample,0,...], mu_pred[num_sample,1,...].detach().cpu(), label='Predicted eyy')
+                    plt.plot(x[num_sample,0,...], elastic_mu[num_sample,1,...].detach().cpu(), label='True eyy')
+                    plt.legend()
+                    plt.savefig(f'{master_folder}/epoch_{epoch}/{args.mode}_yy_{num_sample}.png')
+                    plt.close()
 
                 plt.plot(x[num_sample,0,...], profile[num_sample,0,...].detach().cpu(), label='Profile')
                 plt.legend()

@@ -25,7 +25,7 @@ class convmodel(nn.Module):
     '''
     The CNN class
     '''
-    def __init__(self, kernel_size, depth, channels, activation=nn.Tanh()):
+    def __init__(self, kernel_size, depth, channels, mode='mu', activation=nn.Tanh()):
         '''
         Constructor method
         '''
@@ -35,7 +35,9 @@ class convmodel(nn.Module):
         self.depth          = depth
         self.channels       = channels
         self.activation     = activation
-        
+
+        self.mode           = mode
+
         netlist = nn.ModuleList()
         
         for kk in range(self.depth):
@@ -44,8 +46,11 @@ class convmodel(nn.Module):
             else:
                 in_channels     = self.channels
                 
-            if kk == self.depth-1:
+            if kk == self.depth-1 and self.mode == 'mu':
                 out_channels    = 1
+                activation      = nn.Identity()
+            elif kk == self.depth-1 and self.mode == 'strain':
+                out_channels    = 2
                 activation      = nn.Identity()
             else:
                 out_channels    = self.channels
@@ -83,7 +88,7 @@ class convmodel_no_parametrization(nn.Module):
     '''
     The CNN class. This a variant without parametrization for symmetric kernels
     '''
-    def __init__(self, kernel_size, depth, channels, activation=nn.Tanh()):
+    def __init__(self, kernel_size, depth, channels, mode='mu', activation=nn.Tanh()):
         '''
         The constructor
         '''
@@ -94,6 +99,8 @@ class convmodel_no_parametrization(nn.Module):
         self.depth          = depth
         self.channels       = channels
         self.activation     = activation
+
+        self.mode           = mode
         
         netlist = nn.ModuleList()
         
@@ -103,8 +110,11 @@ class convmodel_no_parametrization(nn.Module):
             else:
                 in_channels     = self.channels
                 
-            if kk == self.depth-1:
+            if kk == self.depth-1 and self.mode == 'mu':
                 out_channels    = 1
+                activation      = nn.Identity()
+            elif kk == self.depth-1 and self.mode == 'strain':
+                out_channels    = 3
                 activation      = nn.Identity()
             else:
                 out_channels    = self.channels
